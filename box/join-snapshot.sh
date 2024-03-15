@@ -6,7 +6,7 @@ CLEAN='\033[0m'
 
 INSTALLATION=$1
 if [ -z $INSTALLATION ]; then
-    INSTALLATION=cosmovisor
+    INSTALLATION=docker
 fi
 
 MONIKER=$2
