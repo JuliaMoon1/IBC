@@ -19,27 +19,27 @@ OSMOSIS_VERSION=21.0.0-a-rc4-testnet
 GOLANG_VERSION=1.20
 
 ADDRBOOK_URL=https://rpc.testnet.osmosis.zone/addrbook
-
 GENESIS_URL=https://genesis.testnet.osmosis.zone/genesis.json
 SNAPSHOT_URL=$(curl -s https://osmosis.fra1.digitaloceanspaces.com/osmo-test-5/snapshots/latest)
 
 WAIT=10
 
 # Checking system resources
-if [ "$(nproc)" -lt 4 ]; then
-    printf "${RED}CPU cores are less than 4 ${CLEAN}\n"
-fi
 printf "${GREEN}CPU cores: $(nproc) ${CLEAN}\n"
-
-free_mem=$(free -h | grep -i "^Mem" | awk '{print $2}')
-free_mem=${free_mem%.*}
-if [ "$free_mem" -lt 7 ]; then
+free_mem=$(free -m | awk '/^Mem:/{print $2}') # Get free memory in MB
+if [ "$free_mem" -lt 8000 ]; then # Assuming 8GB is the minimum requirement
     printf "${RED}Free memory is less than 8GB ${CLEAN}\n"
+else
+    printf "Free memory: ${free_mem}MB \n"
 fi
-printf "Free memory: $free_mem \n"
 
-# Architecture check
+# Determine architecture for downloading the correct Go binary
 ARCH=$(uname -m)
+case $ARCH in
+    x86_64) ARCH="amd64";;
+    aarch64) ARCH="arm64";;
+    *) printf "${RED}Unsupported architecture: $ARCH ${CLEAN}\n"; exit 1;;
+esac
 printf "${GREEN}CPU arch detected: $ARCH ${CLEAN}\n"
 
 # Dependencies check
@@ -51,7 +51,8 @@ for dep in $PACKAGES; do
     fi
 done
 
-# Go installation
+# Define and download the Go package
+GO_PACKAGE_URL="https://go.dev/dl/go${GOLANG_VERSION}.linux-${ARCH}.tar.gz"
 wget -q $GO_PACKAGE_URL
 sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf $(basename $GO_PACKAGE_URL)
 echo "export PATH=\$PATH:/usr/local/go/bin:\$(go env GOPATH)/bin" >> ~/.profile
@@ -64,7 +65,7 @@ mkdir -p $OSMOSIS_HOME
 # Initialize the node
 osmosisd init $MONIKER --chain-id osmo-test-5 --home $OSMOSIS_HOME
 
-# Correcting the RPC port setting
+# Correcting the RPC port setting to avoid conflicts
 sed -i.bak "s/26657/29657/g" $OSMOSIS_HOME/config/config.toml
 
 # Downloading necessary files
