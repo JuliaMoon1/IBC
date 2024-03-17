@@ -87,6 +87,6 @@ SUCCESS Channel {
 }
 ```
 #### Public Namada RPC:
-```
+
 https://rpc.laliola.com/   
-```
+
